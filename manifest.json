@@ -1,0 +1,17 @@
+{
+  "name": "モフみくじ｜もふもふの丘",
+  "short_name": "モフみくじ",
+  "description": "1日1回、モフが今日のおみくじとラッキーカラーを届けます。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf8ef",
+  "theme_color": "#fdf8ef",
+  "lang": "ja",
+  "icons": [
+    { "src": "assets/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

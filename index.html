@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>モフみくじ｜もふもふの丘</title>
+<meta name="description" content="1日1回、モフが今日のおみくじとラッキーカラーを届けます。もふもふの丘の入口。">
+<link rel="icon" href="assets/favicon-32.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#fdf8ef">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="モフみくじ">
+<meta property="og:type" content="website">
+<meta property="og:title" content="モフみくじ｜もふもふの丘">
+<meta property="og:description" content="1日1回、モフが今日のおみくじとラッキーカラーを届けます。">
+<meta property="og:image" content="https://rincanvas-hash.github.io/mofu-mikuji/assets/og.jpg">
+<meta property="og:url" content="https://rincanvas-hash.github.io/mofu-mikuji/">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root{
+    --bg:#fdf8ef; --bg2:#f3ead9; --ink:#4a4038; --sub:#8a7b6c;
+    --card:#fffdf8; --line:#e6dbc7; --accent:#7fa278; --accent2:#e2a15a;
+    --shadow:0 10px 28px rgba(120,100,70,.16);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+    background-attachment:fixed; color:var(--ink);
+    font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+    line-height:1.7; padding:0 16px calc(28px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:440px;margin:0 auto}
+  header{text-align:center;padding:22px 0 6px}
+  header h1{margin:0;font-size:26px;letter-spacing:.14em}
+  header p{margin:4px 0 0;font-size:13px;color:var(--sub)}
+  .screen{display:none;animation:fade .45s ease both}
+  .screen.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .photo{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:22px;
+    box-shadow:var(--shadow);background:#eee8dc;display:block}
+  .photo.pop{animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{opacity:0;transform:scale(.9) rotate(-2deg)}to{opacity:1;transform:none}}
+
+  .fuda{background:var(--card);border:1.5px solid var(--line);border-radius:20px;
+    padding:20px 18px;margin-top:-34px;position:relative;box-shadow:var(--shadow);text-align:center}
+  .fuda .name{font-size:34px;font-weight:800;letter-spacing:.08em;margin:0}
+  .fuda .cmt{margin:10px 2px 0;font-size:15px}
+  .luck{display:flex;align-items:center;gap:12px;margin-top:16px;
+    padding:12px 14px;border-radius:16px;background:var(--bg2)}
+  .chip{width:42px;height:42px;border-radius:50%;flex:0 0 auto;
+    border:2px solid rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .luck small{display:block;color:var(--sub);font-size:11px;letter-spacing:.08em}
+  .luck b{font-size:16px}
+
+  .btn{display:block;width:100%;border:0;border-radius:999px;padding:16px;
+    font-size:18px;font-weight:700;font-family:inherit;color:#fff;
+    background:var(--accent);box-shadow:0 6px 0 #6b8a64;cursor:pointer;margin:18px 0 10px}
+  .btn:active{transform:translateY(3px);box-shadow:0 3px 0 #6b8a64}
+  .btn.sub{background:var(--card);color:var(--ink);border:1.5px solid var(--line);
+    box-shadow:none;font-size:15px;padding:13px;font-weight:600}
+  .row{display:flex;gap:10px}
+  .row .btn{margin:8px 0}
+
+  .cal{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-top:14px}
+  .cal .head{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:8px}
+  .cal .head button{border:0;background:none;font-size:20px;padding:4px 12px;cursor:pointer;color:var(--sub)}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px}
+  .grid .w{color:var(--sub);font-size:11px;padding-bottom:2px}
+  .grid .w.sun{color:#c96a6a}.grid .w.sat{color:#6a8cc9}
+  .cell{padding:5px 0;border-radius:9px}
+  .cell .dot{width:9px;height:9px;border-radius:50%;margin:2px auto 0;border:1px solid rgba(0,0,0,.08)}
+  .cell.today{outline:2px solid var(--accent2)}
+
+  h2.sec{font-size:15px;letter-spacing:.1em;color:var(--sub);margin:24px 0 8px;text-align:center}
+  .links{display:flex;flex-direction:column;gap:8px}
+  .lk{display:flex;align-items:center;gap:12px;background:var(--card);border:1.5px solid var(--line);
+    border-radius:16px;padding:13px 15px;text-decoration:none;color:var(--ink);box-shadow:0 3px 10px rgba(120,100,70,.07)}
+  .lk:active{transform:translateY(1px)}
+  .lk .ico{font-size:22px;flex:0 0 auto}
+  .lk b{display:block;font-size:15px}
+  .lk .s{font-size:12px;color:var(--sub)}
+  footer{text-align:center;font-size:12px;color:var(--sub);margin:26px 0 8px}
+  footer a{color:var(--sub)}
+  .mute{position:fixed;top:10px;right:10px;border:0;background:rgba(255,255,255,.75);
+    border-radius:50%;width:38px;height:38px;font-size:17px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+  /* おみくじを引く演出 */
+  .shake{animation:shake .85s ease-in-out both}
+  @keyframes shake{
+    0%,100%{transform:rotate(0) translateY(0)}
+    10%{transform:rotate(-1.6deg) translateY(-4px)}
+    22%{transform:rotate(1.6deg) translateY(2px)}
+    34%{transform:rotate(-2deg) translateY(-5px)}
+    46%{transform:rotate(2deg) translateY(2px)}
+    58%{transform:rotate(-1.4deg) translateY(-3px)}
+    70%{transform:rotate(1.4deg) translateY(1px)}
+    84%{transform:rotate(-.6deg) translateY(-1px)}
+  }
+  .stage{position:relative}
+  .stick{position:absolute;left:50%;bottom:18%;width:34px;height:120px;margin-left:-17px;
+    background:linear-gradient(180deg,#fffdf6,#f2e7d2);border:1.5px solid #e2d3b6;border-radius:8px;
+    box-shadow:0 6px 18px rgba(90,70,40,.3);opacity:0;pointer-events:none;
+    display:flex;align-items:center;justify-content:center;font-size:18px}
+  .stick.go{animation:stickout .75s cubic-bezier(.2,1.3,.4,1) both}
+  @keyframes stickout{
+    0%{opacity:0;transform:translateY(30px) scale(.7) rotate(-8deg)}
+    45%{opacity:1;transform:translateY(-60px) scale(1) rotate(4deg)}
+    100%{opacity:1;transform:translateY(-90px) scale(1.15) rotate(0)}
+  }
+  .again{text-align:center;font-size:13px;color:var(--sub);margin:4px 0 12px}
+  .shot{width:100%;border-radius:16px;display:block;box-shadow:var(--shadow)}
+  .modal .hint{font-size:12px;color:var(--sub);margin:10px 0 2px}
+
+
+
+  /* もどる = オレンジ */
+  .btn.back{background:linear-gradient(180deg,#f3a961,#e8913f);color:#fff;border:0;
+    box-shadow:0 5px 0 #c87a30;font-weight:700}
+  .btn.back:active{transform:translateY(3px);box-shadow:0 2px 0 #c87a30}
+
+  /* カテゴリの色分け（文字を邪魔しない薄さ） */
+  .lk.c-play {background:linear-gradient(180deg,#fffdfd,#fbeaea);border-color:#f0d3d3}
+  .lk.c-read {background:linear-gradient(180deg,#fdfeff,#e9f1fa);border-color:#d3e0f1}
+  .lk.c-watch{background:linear-gradient(180deg,#fefdff,#f1ecfa);border-color:#ded5f0}
+  .lk.c-book {background:linear-gradient(180deg,#fdfffd,#ebf5eb);border-color:#d3e8d3}
+  .lk.c-hill {background:linear-gradient(180deg,#fffdfa,#fdf2e0);border-color:#f0dfc0}
+  .sec.c-play{color:#b5706e}.sec.c-read{color:#5e7fa8}.sec.c-watch{color:#7d6ba8}
+  .sec.c-book{color:#5f8a5f}.sec.c-hill{color:#b08544}
+  .sec.cat{display:flex;align-items:center;gap:8px;justify-content:center}
+  .sec.cat::before,.sec.cat::after{content:"";height:2px;width:28px;border-radius:2px;background:currentColor;opacity:.35}
+
+  /* きろくの数字 */
+  .stat{display:flex;gap:10px;margin-top:12px}
+  .stat div{flex:1;background:var(--card);border:1.5px solid var(--line);border-radius:14px;
+    padding:10px 6px;text-align:center}
+  .stat b{display:block;font-size:22px;line-height:1.2}
+  .stat small{font-size:11px;color:var(--sub)}
+  .cell.has{cursor:pointer}
+  .cell.has:active{background:var(--bg2)}
+
+  /* 過去の結果モーダル */
+  .modal{position:fixed;inset:0;background:rgba(70,58,46,.45);display:none;
+    align-items:center;justify-content:center;z-index:60;padding:22px}
+  .modal.on{display:flex}
+  .modal .box{background:var(--card);border-radius:22px;padding:16px;width:100%;
+    max-width:330px;text-align:center;box-shadow:var(--shadow);max-height:90vh;overflow:auto}
+  .modal .box img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;display:block}
+
+</style>
+</head>
+<body>
+<button class="mute" id="mute" aria-label="音">🔔</button>
+<canvas id="fx"></canvas>
+<div class="wrap">
+  <header>
+    <h1>モフみくじ</h1>
+    <p>1日1回、モフが今日をそっと占います</p>
+  </header>
+
+  <!-- タイトル -->
+  <section class="screen on" id="s-title">
+    <div class="stage">
+      <img class="photo" id="titleImg" src="assets/title.jpg" alt="おみくじを持ったモフ">
+      <div class="stick" id="stick">🐾</div>
+    </div>
+    <button class="btn" id="draw">おみくじを引く</button>
+    <div class="row">
+      <button class="btn sub" data-go="s-cal">📅 きろく</button>
+      <button class="btn sub" data-go="s-annai">🏡 丘の案内所</button>
+    </div>
+  </section>
+
+  <!-- 結果 -->
+  <section class="screen" id="s-result">
+    <img class="photo" id="resImg" alt="今日のモフ">
+    <div class="fuda">
+      <p class="name" id="resName"></p>
+      <p class="cmt" id="resCmt"></p>
+      <div class="luck">
+        <div class="chip" id="resChip"></div>
+        <div><small>LUCKY COLOR</small><b id="resColor"></b></div>
+      </div>
+    </div>
+    <p class="again">🐾 また明日、モフが待っています</p>
+    <button class="btn" id="share">この結果をシェアする</button>
+    <div class="row">
+      <button class="btn sub" data-go="s-cal">📅 きろく</button>
+      <button class="btn sub" data-go="s-annai">🏡 丘の案内所</button>
+    </div>
+    <button class="btn back" data-go="s-title">← もどる</button>
+  </section>
+
+  <!-- きろく -->
+  <section class="screen" id="s-cal">
+    <h2 class="sec">ひいた日のきろく</h2>
+    <div class="cal">
+      <div class="head"><button id="prevM">◀</button><span id="calTitle"></span><button id="nextM">▶</button></div>
+      <div class="grid" id="calGrid"></div>
+    </div>
+    <div class="stat">
+      <div><b id="stTotal">0</b><small>ぜんぶで</small></div>
+      <div><b id="stMonth">0</b><small>今月</small></div>
+      <div><b id="stStreak">0</b><small>つづけて</small></div>
+    </div>
+    <p style="font-size:12px;color:var(--sub);text-align:center">丸の色は、その日のラッキーカラーです。<br>丸のある日をタップすると、その日の結果が見られます</p>
+    <button class="btn back" data-go="s-title">← もどる</button>
+  </section>
+
+  <!-- 案内所 -->
+  <section class="screen" id="s-annai">
+    <h2 class="sec">🏡 丘の案内所</h2>
+    <div class="links" id="linkList"></div>
+    <footer>
+      ほかの作品（株のアプリ・絵本・塗り絵）は<br>
+      <a href="https://rincanvas-hash.github.io/ayaha-site/" target="_blank" rel="noopener">彩葉りん公式サイト</a> にまとめています
+    </footer>
+    <button class="btn back" data-go="s-title">← もどる</button>
+  </section>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <img id="mImg" alt="その日のモフ">
+    <p id="mDate" style="font-size:12px;color:var(--sub);margin:10px 0 0"></p>
+    <p id="mName" style="font-size:24px;font-weight:800;margin:2px 0 6px"></p>
+    <p id="mCmt" style="font-size:14px;margin:0"></p>
+    <div class="luck" style="margin-top:12px">
+      <div class="chip" id="mChip"></div>
+      <div style="text-align:left"><small>LUCKY COLOR</small><b id="mColor"></b></div>
+    </div>
+    <button class="btn back" id="mClose" style="margin-top:14px">とじる</button>
+  </div>
+</div>
+
+<div class="modal" id="shotModal">
+  <div class="box">
+    <img class="shot" id="shotImg" alt="今日の結果">
+    <p class="hint">画像を長押しすると保存できます</p>
+    <a class="btn back" id="shotSave" download="mofu-mikuji.png" style="text-decoration:none;text-align:center">画像を保存する</a>
+    <button class="btn sub" id="shotX">Xに投稿する</button>
+    <button class="btn sub" id="shotClose">とじる</button>
+  </div>
+</div>
+
+<script src="assets/data.js"></script>
+<script>
+(function(){
+  "use strict";
+  var KEY="mofumikuji.history", MKEY="mofumikuji.mute";
+  var hist=load(), muted=localStorage.getItem(MKEY)==="1";
+  var calMonth=new Date();
+
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ return {}; } }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(hist)); }catch(e){} }
+  function key(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function todayKey(){ return key(new Date()); }
+
+  /* ---- 音 ---- */
+  var actx=null;
+  function ac(){
+    if(!actx){ var C=window.AudioContext||window.webkitAudioContext; if(C) actx=new C(); }
+    if(actx&&actx.state==="suspended") actx.resume();
+    return actx;
+  }
+  function chime(){
+    if(muted) return; var c=ac(); if(!c) return;
+    [523.25,659.25,783.99].forEach(function(f,i){
+      var o=c.createOscillator(), g=c.createGain(), t=c.currentTime+i*0.09;
+      o.type="sine"; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.18,t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.7);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.75);
+    });
+  }
+  var muteBtn=document.getElementById("mute");
+  muteBtn.textContent = muted ? "🔕" : "🔔";
+  muteBtn.onclick=function(){
+    muted=!muted; localStorage.setItem(MKEY,muted?"1":"0");
+    muteBtn.textContent = muted ? "🔕" : "🔔"; if(!muted) chime();
+  };
+
+  /* ---- 画面きりかえ ---- */
+  function show(id){
+    var list=document.querySelectorAll(".screen");
+    for(var i=0;i<list.length;i++) list[i].classList.toggle("on", list[i].id===id);
+    if(id==="s-cal") drawCal();
+    window.scrollTo(0,0);
+  }
+  var gos=document.querySelectorAll("[data-go]");
+  for(var gi=0;gi<gos.length;gi++){
+    (function(b){ b.onclick=function(){ show(b.getAttribute("data-go")); }; })(gos[gi]);
+  }
+
+  /* ---- おみくじを引く ---- */
+  function recent(n,f){
+    var ks=Object.keys(hist).sort().slice(-n), out=[];
+    for(var i=0;i<ks.length;i++) out.push(f(hist[ks[i]]));
+    return out;
+  }
+  function pick(len,avoid){
+    var i, guard=0;
+    do{ i=Math.floor(Math.random()*len); guard++; }while(avoid.indexOf(i)>=0 && guard<40);
+    return i;
+  }
+  function drawToday(){
+    var tk=todayKey();
+    if(hist[tk]) return hist[tk];
+    var r={ o:pick(OMIKUJI.length, recent(3,function(x){return x.o;})),
+            c:pick(COLORS.length,  recent(3,function(x){return x.c;})),
+            i:pick(IMG_COUNT,      recent(6,function(x){return x.i;})) };
+    hist[tk]=r; save();
+    document.getElementById("draw").textContent="今日の結果をもう一度見る";
+    return r;
+  }
+  function render(r){
+    var o=OMIKUJI[r.o], c=COLORS[r.c];
+    var img=document.getElementById("resImg");
+    img.classList.remove("pop"); void img.offsetWidth; img.classList.add("pop");
+    img.src="assets/omikuji/"+String(r.i+1).padStart(2,"0")+".jpg";
+    document.getElementById("resName").textContent=o.name;
+    document.getElementById("resCmt").textContent=o.text;
+    document.getElementById("resColor").textContent=c.name;
+    document.getElementById("resChip").style.background=c.hex;
+    document.querySelector("#s-result .fuda").style.borderColor=c.hex;
+    show("s-result"); chime();
+    if(o.name==="大吉"||o.name==="モフ吉") confetti(c.hex);
+  }
+  function rattle(){
+    if(muted) return; var c=ac(); if(!c) return;
+    for(var i=0;i<7;i++){
+      var o=c.createOscillator(), g=c.createGain(), t=c.currentTime+i*0.11;
+      o.type="triangle"; o.frequency.value=300+Math.random()*420;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.09,t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.09);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.1);
+    }
+  }
+  var drawing=false;
+  document.getElementById("draw").onclick=function(){
+    if(drawing) return;
+    ac();
+    var known=!!hist[todayKey()];
+    if(known){ render(hist[todayKey()]); return; }   /* 2回目以降はすぐ表示 */
+    drawing=true;
+    var img=document.getElementById("titleImg"), stick=document.getElementById("stick");
+    img.classList.remove("shake"); stick.classList.remove("go");
+    void img.offsetWidth;
+    img.classList.add("shake"); rattle();
+    setTimeout(function(){ stick.classList.add("go"); }, 820);
+    setTimeout(function(){
+      img.classList.remove("shake"); stick.classList.remove("go");
+      drawing=false; render(drawToday());
+    }, 1680);
+  };
+
+  /* ---- 結果を1枚の画像にする ---- */
+  function wrap(ctx,text,maxW){
+    var lines=[], line="";
+    for(var i=0;i<text.length;i++){
+      var ch=text.charAt(i);
+      if(ctx.measureText(line+ch).width>maxW){ lines.push(line); line=ch; }
+      else line+=ch;
+    }
+    if(line) lines.push(line);
+    return lines;
+  }
+  var FONT='"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif';
+  function rrect(x,a,b,w,h,r){
+    x.beginPath();
+    if(x.roundRect) x.roundRect(a,b,w,h,r); else x.rect(a,b,w,h);
+  }
+  function buildCard(r){
+    return new Promise(function(resolve){
+      var o=OMIKUJI[r.o], c=COLORS[r.c];
+      var W=1080, H=1350, cv=document.createElement("canvas");
+      cv.width=W; cv.height=H;
+      var x=cv.getContext("2d");
+      var bg=x.createLinearGradient(0,0,0,H);
+      bg.addColorStop(0,"#fdf8ef"); bg.addColorStop(1,"#f3ead9");
+      x.fillStyle=bg; x.fillRect(0,0,W,H);
+      var im=new Image();
+      im.onload=function(){
+       try{
+        var pw=W-96, ph=720, px=48, py=48;
+        x.save(); rrect(x,px,py,pw,ph,44); x.clip();
+        var sc=Math.max(pw/im.width, ph/im.height);
+        var dw=im.width*sc, dh=im.height*sc;
+        x.drawImage(im, px+(pw-dw)/2, py+(ph-dh)/2, dw, dh);
+        x.restore();
+
+        var cy=py+ph-60, chh=H-cy-112;
+        x.save();
+        x.shadowColor="rgba(120,100,70,.18)"; x.shadowBlur=26; x.shadowOffsetY=8;
+        x.fillStyle="#fffdf8"; rrect(x,48,cy,W-96,chh,40); x.fill();
+        x.restore();
+        x.strokeStyle=c.hex; x.lineWidth=4; rrect(x,48,cy,W-96,chh,40); x.stroke();
+
+        x.fillStyle="#4a4038"; x.textAlign="center";
+        x.font="bold 86px "+FONT;
+        x.fillText(o.name, W/2, cy+122);
+
+        x.font="38px "+FONT;
+        var ls=wrap(x,o.text,W-200), ty=cy+200;
+        for(var i=0;i<ls.length && i<4;i++){ x.fillText(ls[i], W/2, ty); ty+=58; }
+
+        var by=cy+chh-152;
+        x.fillStyle="#f3ead9"; rrect(x,110,by,W-220,104,52); x.fill();
+        x.beginPath(); x.arc(178,by+52,36,0,Math.PI*2);
+        x.fillStyle=c.hex; x.fill();
+        x.strokeStyle="#ffffff"; x.lineWidth=5; x.stroke();
+        x.textAlign="left"; x.fillStyle="#8a7b6c"; x.font="22px "+FONT;
+        x.fillText("LUCKY COLOR", 238, by+42);
+        x.fillStyle="#4a4038"; x.font="bold 40px "+FONT;
+        x.fillText(c.name, 238, by+86);
+
+        x.textAlign="center"; x.fillStyle="#8a7b6c"; x.font="26px "+FONT;
+        x.fillText("モフみくじ ｜ もふもふの丘", W/2, H-42);
+
+        try{
+          var durl=cv.toDataURL("image/png");
+          cv.toBlob(function(b){ resolve({blob:b, url:durl}); }, "image/png");
+        }catch(err){ resolve(null); }   /* file:// で開いたときはここに来る */
+       }catch(err2){ resolve(null); }
+      };
+      im.onerror=function(){ resolve(null); };
+      setTimeout(function(){ resolve(null); }, 5000);
+      im.src="assets/omikuji/"+String(r.i+1).padStart(2,"0")+".jpg";
+    });
+  }
+
+  /* ---- シェア ---- */
+  var shotModal=document.getElementById("shotModal");
+  document.getElementById("shotClose").onclick=function(){ shotModal.classList.remove("on"); };
+  shotModal.onclick=function(e){ if(e.target===shotModal) shotModal.classList.remove("on"); };
+
+  function shareText(){
+    var r=hist[todayKey()], o=OMIKUJI[r.o], c=COLORS[r.c];
+    var NL=String.fromCharCode(10);
+    return "今日のモフみくじは【"+o.name+"】"+NL+o.text+NL+"ラッキーカラーは "+c.name+" 🐶"+NL+"#モフみくじ #もふもふの丘";
+  }
+  var shareBtn=document.getElementById("share");
+  shareBtn.onclick=function(){
+    var r=hist[todayKey()]; if(!r) return;
+    var text=shareText(), url=location.href.split("#")[0].split("?")[0];
+    shareBtn.disabled=true; shareBtn.textContent="画像をつくっています…";
+    buildCard(r).catch(function(){ return null; }).then(function(card){
+      shareBtn.disabled=false; shareBtn.textContent="この結果をシェアする";
+      if(!card){
+        if(navigator.share) navigator.share({text:text,url:url}).catch(function(){});
+        else window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(text)+"&url="+encodeURIComponent(url),"_blank");
+        return;
+      }
+      var file=null;
+      try{ file=new File([card.blob],"mofu-mikuji.png",{type:"image/png"}); }catch(e){}
+      if(file && navigator.canShare && navigator.canShare({files:[file]})){
+        navigator.share({files:[file], text:text+String.fromCharCode(10)+url}).catch(function(){});
+      }else{
+        document.getElementById("shotImg").src=card.url;
+        document.getElementById("shotSave").href=card.url;
+        document.getElementById("shotX").onclick=function(){
+          window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(text)+"&url="+encodeURIComponent(url),"_blank");
+        };
+        shotModal.classList.add("on");
+      }
+    });
+  };
+
+  /* ---- きろくカレンダー ---- */
+  var WD=["日","月","火","水","木","金","土"];
+  function drawCal(){
+    var y=calMonth.getFullYear(), m=calMonth.getMonth();
+    document.getElementById("calTitle").textContent=y+"年"+(m+1)+"月";
+    var g=document.getElementById("calGrid"); g.innerHTML="";
+    for(var w=0;w<7;w++){
+      var e=document.createElement("div");
+      e.className="w"+(w===0?" sun":w===6?" sat":""); e.textContent=WD[w]; g.appendChild(e);
+    }
+    var first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate(), tk=todayKey();
+    for(var i=0;i<first;i++) g.appendChild(document.createElement("div"));
+    for(var d=1;d<=last;d++){
+      var k=key(new Date(y,m,d)), cell=document.createElement("div");
+      cell.className="cell"+(k===tk?" today":"");
+      var num=document.createElement("span"); num.textContent=d; cell.appendChild(num);
+      var rec=hist[k];
+      if(rec){
+        var dot=document.createElement("div"); dot.className="dot";
+        dot.style.background=COLORS[rec.c].hex; cell.appendChild(dot);
+        cell.className+=" has";
+        (function(kk,rr){ cell.onclick=function(){ openModal(kk,rr); }; })(k,rec);
+      }
+      g.appendChild(cell);
+    }
+    drawStat(y,m);
+  }
+
+  function drawStat(y,m){
+    var ks=Object.keys(hist), month=0;
+    for(var i=0;i<ks.length;i++){
+      var p=ks[i].split("-");
+      if(+p[0]===y && +p[1]===m+1) month++;
+    }
+    var streak=0, d=new Date();
+    if(!hist[key(d)]) d.setDate(d.getDate()-1);
+    while(hist[key(d)]){ streak++; d.setDate(d.getDate()-1); }
+    document.getElementById("stTotal").textContent=ks.length;
+    document.getElementById("stMonth").textContent=month;
+    document.getElementById("stStreak").textContent=streak;
+  }
+
+  var modal=document.getElementById("modal");
+  function openModal(k,rec){
+    var o=OMIKUJI[rec.o], c=COLORS[rec.c], p=k.split("-");
+    document.getElementById("mImg").src="assets/omikuji/"+String(rec.i+1).padStart(2,"0")+".jpg";
+    document.getElementById("mDate").textContent=(+p[1])+"月"+(+p[2])+"日";
+    document.getElementById("mName").textContent=o.name;
+    document.getElementById("mCmt").textContent=o.text;
+    document.getElementById("mColor").textContent=c.name;
+    document.getElementById("mChip").style.background=c.hex;
+    modal.classList.add("on");
+  }
+  document.getElementById("mClose").onclick=function(){ modal.classList.remove("on"); };
+  modal.onclick=function(e){ if(e.target===modal) modal.classList.remove("on"); };
+  document.getElementById("prevM").onclick=function(){ calMonth.setMonth(calMonth.getMonth()-1); drawCal(); };
+  document.getElementById("nextM").onclick=function(){ calMonth.setMonth(calMonth.getMonth()+1); drawCal(); };
+
+  /* ---- 紙吹雪 ---- */
+  function confetti(hex){
+    var cv=document.getElementById("fx"), ctx=cv.getContext("2d");
+    cv.width=window.innerWidth; cv.height=window.innerHeight;
+    var cols=[hex,"#f7c6d3","#f5de7e","#a8d08d","#ffffff"], ps=[];
+    for(var i=0;i<70;i++) ps.push({
+      x:Math.random()*cv.width, y:-20-Math.random()*cv.height*0.5,
+      w:6+Math.random()*7, h:8+Math.random()*9,
+      vy:1.6+Math.random()*2.4, vx:-1+Math.random()*2,
+      a:Math.random()*6.3, va:-0.12+Math.random()*0.24, c:cols[i%cols.length]});
+    var t0=performance.now();
+    (function loop(t){
+      ctx.clearRect(0,0,cv.width,cv.height);
+      for(var i=0;i<ps.length;i++){
+        var p=ps[i]; p.x+=p.vx; p.y+=p.vy; p.a+=p.va;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a); ctx.fillStyle=p.c;
+        ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+      }
+      if(t-t0<3600) requestAnimationFrame(loop); else ctx.clearRect(0,0,cv.width,cv.height);
+    })(t0);
+  }
+
+  /* ---- 案内所 ---- */
+  var LINKS=[
+    {g:"あそぶ",c:"play"},
+    {i:"🀄",t:"もふもふペア",s:"住民の顔をそろえる二角取り",u:"https://rincanvas-hash.github.io/mofu-pair/"},
+    {i:"🧩",t:"もふもふパズル",s:"動物の顔を線でつなぐパズル",u:"https://mofu-puzzle.netlify.app/"},
+    {i:"🍣",t:"もふもふ寿司キャッチ",s:"流れてくるお寿司を受け止める",u:"https://rincanvas-hash.github.io/-mofu-sushi/"},
+    {i:"📔",t:"もふ日記",s:"毎日の記録を習慣に（iPhone）",u:"https://apps.apple.com/jp/app/id6759413389"},
+    {g:"よむ",c:"read"},
+    {i:"🐾",t:"もふもふの丘の住民たち",s:"note・毎週火曜",u:"https://note.com/mofu_oka/m/m4dc6fe61982b"},
+    {i:"✉️",t:"もふもふの丘の小さなおはなし",s:"note・土日",u:"https://note.com/mofu_oka/m/m5b2a15f48f78"},
+    {i:"📖",t:"銀色の賢者が綴る 同居人への教育論",s:"note・連載小説・毎週金曜",u:"https://note.com/mofu_oka/m/m398b788ff7b0"},
+    {i:"🌈",t:"虹の橋のデフラグメンテーション",s:"note・完結したSF小説",u:"https://note.com/mofu_oka/m/m4f971850e2d9"},
+    {i:"📮",t:"【スタッフ】もふもふの丘だより",s:"note・制作のうらがわ",u:"https://note.com/mofu_oka/m/mde35a76b2e19"},
+    {g:"とどく・みる",c:"watch"},
+    {i:"💌",t:"もふもふの丘通信",s:"メールで届くモフのお便り",u:"https://mofumofunooka.substack.com/"},
+    {i:"▶️",t:"YouTube レインボーライン",s:"モフの動画・毎週金曜",u:"https://www.youtube.com/channel/UCPoDfNb_dSQNGVfzml0wWPg"},
+    {g:"ほん",c:"book"},
+    {i:"📚",t:"もふもふの丘の住民たち",s:"絵本（Kindle）",u:"https://www.amazon.co.jp/dp/B0H56YQ2W7"},
+    {i:"📚",t:"モフモフの丘でまってるよ",s:"絵本（Kindle・紙の本もあり）",u:"https://www.amazon.co.jp/dp/B0FTR248TQ"},
+    {g:"丘へ",c:"hill"},
+    {i:"🏡",t:"もふもふの丘",s:"丘を歩いて世界をのぞく",u:"https://rincanvas-hash.github.io/mofumofu-hill/"}
+  ];
+  var list=document.getElementById("linkList"), cur="play";
+  for(var li=0;li<LINKS.length;li++){
+    var l=LINKS[li];
+    if(l.g){ cur=l.c; var h=document.createElement("h2"); h.className="sec cat c-"+l.c; h.textContent=l.g; list.appendChild(h); continue; }
+    var a=document.createElement("a");
+    a.className="lk c-"+cur; a.href=l.u; a.target="_blank"; a.rel="noopener";
+    var ico=document.createElement("span"); ico.className="ico"; ico.textContent=l.i;
+    var box=document.createElement("span");
+    var b=document.createElement("b"); b.textContent=l.t;
+    var s=document.createElement("span"); s.className="s"; s.textContent=l.s;
+    box.appendChild(b); box.appendChild(s);
+    a.appendChild(ico); a.appendChild(box);
+    list.appendChild(a);
+  }
+
+  /* ---- 起動時 ---- */
+  if(hist[todayKey()]) document.getElementById("draw").textContent="今日の結果をもう一度見る";
+
+  /* ホーム画面に追加できるようにする（対応ブラウザのみ） */
+  if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  window.__app={
+    hist:hist,
+    draw:function(){ render(drawToday()); },
+    force:function(o,c,i){ hist[todayKey()]={o:o,c:c,i:i}; save(); render(hist[todayKey()]); },
+    reset:function(){ hist={}; save(); location.reload(); },
+    show:show, OMIKUJI:OMIKUJI, COLORS:COLORS
+  };
+})();
+</script>
+</body>
+</html>
