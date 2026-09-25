@@ -112,6 +112,14 @@
     100%{opacity:1;transform:translateY(-90px) scale(1.15) rotate(0)}
   }
   .again{text-align:center;font-size:13px;color:var(--sub);margin:4px 0 12px}
+  /* 月替わりの限定 */
+  .banner{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+    background:linear-gradient(180deg,#fff6e3,#ffe9c4);border:1.5px solid #e8c27a;border-radius:14px;
+    padding:9px 12px;margin-top:12px;font-size:13px;font-weight:700;color:#8a5a1c;box-shadow:0 3px 10px rgba(200,140,60,.12)}
+  .banner small{font-weight:600;color:#a8783a;background:#fff;border-radius:999px;padding:1px 9px;font-size:11px}
+  .ltag{display:inline-block;font-size:11px;letter-spacing:.1em;color:#fff;background:linear-gradient(90deg,#e9a23b,#d3762a);
+    border-radius:999px;padding:2px 10px;margin:0 0 6px}
+  .cell .dot.ltd{box-shadow:0 0 0 2px #fff,0 0 0 4px #e0a23a;width:10px;height:10px}
   .shot{width:100%;border-radius:16px;display:block;box-shadow:var(--shadow)}
   .modal .hint{font-size:12px;color:var(--sub);margin:10px 0 2px}
 
@@ -167,6 +175,7 @@
       <img class="photo" id="titleImg" src="assets/title.jpg" alt="おみくじを持ったモフ">
       <div class="stick" id="stick">🐾</div>
     </div>
+    <div class="banner" id="seasonBanner" style="display:none"></div>
     <button class="btn" id="draw">おみくじを引く</button>
     <div class="row">
       <button class="btn sub" data-go="s-cal">📅 きろく</button>
@@ -178,6 +187,7 @@
   <section class="screen" id="s-result">
     <img class="photo" id="resImg" alt="今日のモフ">
     <div class="fuda">
+      <span class="ltag" id="resTag" style="display:none"></span>
       <p class="name" id="resName"></p>
       <p class="cmt" id="resCmt"></p>
       <div class="luck">
@@ -226,6 +236,7 @@
   <div class="box">
     <img id="mImg" alt="その日のモフ">
     <p id="mDate" style="font-size:12px;color:var(--sub);margin:10px 0 0"></p>
+    <span class="ltag" id="mTag" style="display:none"></span>
     <p id="mName" style="font-size:24px;font-weight:800;margin:2px 0 6px"></p>
     <p id="mCmt" style="font-size:14px;margin:0"></p>
     <div class="luck" style="margin-top:12px">
@@ -246,7 +257,7 @@
   </div>
 </div>
 
-<script src="assets/data.js?v=2"></script>
+<script src="assets/data.js?v=3"></script>
 <script>
 (function(){
   "use strict";
@@ -307,28 +318,72 @@
     do{ i=Math.floor(Math.random()*len); guard++; }while(avoid.indexOf(i)>=0 && guard<40);
     return i;
   }
+  /* 今月の限定（なければ null） */
+  function seasonNow(d){ d=d||new Date(); var k=String(d.getMonth()+1); return SEASON[k] ? {key:k, data:SEASON[k]} : null; }
+  /* 今月すでに引いた限定の番号 */
+  function seasonDrawn(d){
+    d=d||new Date(); var y=d.getFullYear(), m=d.getMonth()+1, out=[];
+    Object.keys(hist).forEach(function(k){ var p=k.split("-"), r=hist[k];
+      if(+p[0]===y && +p[1]===m && r.s!==undefined && out.indexOf(r.si)<0) out.push(r.si); });
+    return out;
+  }
+  /* 記録 → 表示用にほどく（限定かどうかをここで吸収） */
+  function unpack(r){
+    if(r.s!==undefined && SEASON[r.s] && SEASON[r.s].omikuji[r.si]){
+      var sd=SEASON[r.s], so=sd.omikuji[r.si];
+      var col = (r.sc!==undefined && sd.colors[r.sc]) ? sd.colors[r.sc] : COLORS[r.c];
+      return { name:so.name, text:so.text, img:"assets/season/"+so.img, color:col, limited:true, label:sd.label, key:r.s };
+    }
+    var o=OMIKUJI[r.o];
+    return { name:o.name, text:o.text, img:"assets/omikuji/"+String(r.i+1).padStart(2,"0")+".jpg", color:COLORS[r.c], limited:false };
+  }
   function drawToday(){
     var tk=todayKey();
     if(hist[tk]) return hist[tk];
     var r={ o:pick(OMIKUJI.length, recent(3,function(x){return x.o;})),
             c:pick(COLORS.length,  recent(3,function(x){return x.c;})),
             i:pick(IMG_COUNT,      recent(6,function(x){return x.i;})) };
+    /* 限定: 今月まだ出会っていないものがあれば混ぜる。月末が近づくほど出やすく、最後は必ず出る */
+    var now=new Date(), sn=seasonNow(now);
+    if(sn){
+      var drawn=seasonDrawn(now), rest=[];
+      sn.data.omikuji.forEach(function(_,k){ if(drawn.indexOf(k)<0) rest.push(k); });
+      if(rest.length){
+        var daysLeft=new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()-now.getDate()+1;
+        var prob=Math.max(0.3, rest.length/daysLeft);
+        if(Math.random()<prob){
+          r.s=sn.key; r.si=rest[Math.floor(Math.random()*rest.length)];
+          if(sn.data.colors.length && Math.random()<0.6) r.sc=Math.floor(Math.random()*sn.data.colors.length);
+        }
+      }
+    }
     hist[tk]=r; save();
     document.getElementById("draw").textContent="今日の結果をもう一度見る";
     return r;
   }
   function render(r){
-    var o=OMIKUJI[r.o], c=COLORS[r.c];
+    var u=unpack(r), o=u, c=u.color;
     var img=document.getElementById("resImg");
     img.classList.remove("pop"); void img.offsetWidth; img.classList.add("pop");
-    img.src="assets/omikuji/"+String(r.i+1).padStart(2,"0")+".jpg";
+    img.src=u.img;
+    var tag=document.getElementById("resTag");
+    tag.style.display=u.limited?"inline-block":"none"; tag.textContent=u.limited?("🍂 "+u.label):"";
     document.getElementById("resName").textContent=o.name;
     document.getElementById("resCmt").textContent=o.text;
     document.getElementById("resColor").textContent=c.name;
     document.getElementById("resChip").style.background=c.hex;
     document.querySelector("#s-result .fuda").style.borderColor=c.hex;
     show("s-result"); chime();
-    if(o.name==="大吉"||o.name==="モフ吉") confetti(c.hex);
+    if(u.limited||o.name==="大吉"||o.name==="モフ吉") confetti(c.hex);
+  }
+  /* トップの「◯月限定 登場中」 */
+  function renderBanner(){
+    var b=document.getElementById("seasonBanner"), sn=seasonNow();
+    if(!sn){ b.style.display="none"; return; }
+    b.textContent=""; b.style.display="flex";
+    b.appendChild(document.createTextNode(sn.data.banner));
+    var got=seasonDrawn().length, sm=document.createElement("small");
+    sm.textContent="みつけた "+got+" / "+sn.data.omikuji.length; b.appendChild(sm);
   }
   function rattle(){
     if(muted) return; var c=ac(); if(!c) return;
@@ -377,7 +432,7 @@
   }
   function buildCard(r){
     return new Promise(function(resolve){
-      var o=OMIKUJI[r.o], c=COLORS[r.c];
+      var u=unpack(r), o=u, c=u.color;
       var W=1080, H=1350, cv=document.createElement("canvas");
       cv.width=W; cv.height=H;
       var x=cv.getContext("2d");
@@ -402,6 +457,7 @@
         x.strokeStyle=c.hex; x.lineWidth=4; rrect(x,48,cy,W-96,chh,40); x.stroke();
 
         x.fillStyle="#4a4038"; x.textAlign="center";
+        if(u.limited){ x.fillStyle="#d3762a"; x.font="bold 30px "+FONT; x.fillText("🍂 "+u.label, W/2, cy+58); x.fillStyle="#4a4038"; }
         x.font="bold 86px "+FONT;
         x.fillText(o.name, W/2, cy+122);
 
@@ -430,7 +486,7 @@
       };
       im.onerror=function(){ resolve(null); };
       setTimeout(function(){ resolve(null); }, 5000);
-      im.src="assets/omikuji/"+String(r.i+1).padStart(2,"0")+".jpg";
+      im.src=u.img;
     });
   }
 
@@ -440,9 +496,9 @@
   shotModal.onclick=function(e){ if(e.target===shotModal) shotModal.classList.remove("on"); };
 
   function shareText(){
-    var r=hist[todayKey()], o=OMIKUJI[r.o], c=COLORS[r.c];
-    var NL=String.fromCharCode(10);
-    return "今日のモフみくじは【"+o.name+"】"+NL+o.text+NL+"ラッキーカラーは "+c.name+" 🐶"+NL+"#モフみくじ #もふもふの丘";
+    var r=hist[todayKey()], u=unpack(r), o=u, c=u.color;
+    var NL=String.fromCharCode(10), head=u.limited ? "🍂"+u.label+"！今日のモフみくじは【" : "今日のモフみくじは【";
+    return head+o.name+"】"+NL+o.text+NL+"ラッキーカラーは "+c.name+" 🐶"+NL+"#モフみくじ #もふもふの丘";
   }
   var shareBtn=document.getElementById("share");
   shareBtn.onclick=function(){
@@ -489,8 +545,8 @@
       var num=document.createElement("span"); num.textContent=d; cell.appendChild(num);
       var rec=hist[k];
       if(rec){
-        var dot=document.createElement("div"); dot.className="dot";
-        dot.style.background=COLORS[rec.c].hex; cell.appendChild(dot);
+        var dot=document.createElement("div"), ur=unpack(rec); dot.className="dot"+(ur.limited?" ltd":"");
+        dot.style.background=ur.color.hex; cell.appendChild(dot);
         cell.className+=" has";
         (function(kk,rr){ cell.onclick=function(){ openModal(kk,rr); }; })(k,rec);
       }
@@ -515,8 +571,9 @@
 
   var modal=document.getElementById("modal");
   function openModal(k,rec){
-    var o=OMIKUJI[rec.o], c=COLORS[rec.c], p=k.split("-");
-    document.getElementById("mImg").src="assets/omikuji/"+String(rec.i+1).padStart(2,"0")+".jpg";
+    var u=unpack(rec), o=u, c=u.color, p=k.split("-");
+    document.getElementById("mImg").src=u.img;
+    var mt=document.getElementById("mTag"); mt.style.display=u.limited?"inline-block":"none"; mt.textContent=u.limited?("🍂 "+u.label):"";
     document.getElementById("mDate").textContent=(+p[1])+"月"+(+p[2])+"日";
     document.getElementById("mName").textContent=o.name;
     document.getElementById("mCmt").textContent=o.text;
@@ -590,6 +647,7 @@
 
   /* ---- 起動時 ---- */
   if(hist[todayKey()]) document.getElementById("draw").textContent="今日の結果をもう一度見る";
+  renderBanner();
 
   /* ホーム画面に追加できるようにする（対応ブラウザのみ） */
   if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
@@ -603,7 +661,8 @@
     draw:function(){ render(drawToday()); },
     force:function(o,c,i){ hist[todayKey()]={o:o,c:c,i:i}; save(); render(hist[todayKey()]); },
     reset:function(){ hist={}; save(); location.reload(); },
-    show:show, OMIKUJI:OMIKUJI, COLORS:COLORS
+    show:show, OMIKUJI:OMIKUJI, COLORS:COLORS, SEASON:SEASON, unpack:unpack, banner:renderBanner,
+    forceSeason:function(key,si,sc){ hist[todayKey()]={o:0,c:0,i:0,s:key,si:si,sc:sc}; save(); render(hist[todayKey()]); renderBanner(); }
   };
 })();
 </script>
