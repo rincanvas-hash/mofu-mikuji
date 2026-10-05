@@ -136,8 +136,9 @@
   .lk.c-watch{background:linear-gradient(180deg,#fefdff,#f1ecfa);border-color:#ded5f0}
   .lk.c-book {background:linear-gradient(180deg,#fdfffd,#ebf5eb);border-color:#d3e8d3}
   .lk.c-hill {background:linear-gradient(180deg,#fffdfa,#fdf2e0);border-color:#f0dfc0}
+  .lk.c-money{background:linear-gradient(180deg,#fffef8,#fbf1c9);border-color:#ecd98f}
   .sec.c-play{color:#b5706e}.sec.c-read{color:#5e7fa8}.sec.c-watch{color:#7d6ba8}
-  .sec.c-book{color:#5f8a5f}.sec.c-hill{color:#b08544}
+  .sec.c-book{color:#5f8a5f}.sec.c-hill{color:#b08544}.sec.c-money{color:#a8862a}
   .sec.cat{display:flex;align-items:center;gap:8px;justify-content:center}
   .sec.cat::before,.sec.cat::after{content:"";height:2px;width:28px;border-radius:2px;background:currentColor;opacity:.35}
 
@@ -257,7 +258,7 @@
   </div>
 </div>
 
-<script src="assets/data.js?v=3"></script>
+<script src="assets/data.js?v=4"></script>
 <script>
 (function(){
   "use strict";
@@ -318,6 +319,17 @@
     do{ i=Math.floor(Math.random()*len); guard++; }while(avoid.indexOf(i)>=0 && guard<40);
     return i;
   }
+  /* 写真: 季節限定の通常写真（IMG_MONTHS）は、その月だけ候補に入れる */
+  function pickImg(){
+    var m=new Date().getMonth()+1, avoid=recent(6,function(x){return x.i;}), pool=[];
+    for(var n=1;n<=IMG_COUNT;n++){
+      var ms=(typeof IMG_MONTHS!=="undefined") ? IMG_MONTHS[n] : null;
+      if(ms && ms.indexOf(m)<0) continue;
+      if(avoid.indexOf(n-1)<0) pool.push(n-1);
+    }
+    if(!pool.length) return pick(IMG_COUNT, avoid);
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
   /* 今月の限定（なければ null） */
   function seasonNow(d){ d=d||new Date(); var k=String(d.getMonth()+1); return SEASON[k] ? {key:k, data:SEASON[k]} : null; }
   /* 今月すでに引いた限定の番号 */
@@ -332,7 +344,7 @@
     if(r.s!==undefined && SEASON[r.s] && SEASON[r.s].omikuji[r.si]){
       var sd=SEASON[r.s], so=sd.omikuji[r.si];
       var col = (r.sc!==undefined && sd.colors[r.sc]) ? sd.colors[r.sc] : COLORS[r.c];
-      return { name:so.name, text:so.text, img:"assets/season/"+so.img, color:col, limited:true, label:sd.label, key:r.s };
+      return { name:so.name, text:so.text, img:"assets/season/"+so.img, color:col, limited:true, label:sd.label, icon:(sd.icon||"🍂"), key:r.s };
     }
     var o=OMIKUJI[r.o];
     return { name:o.name, text:o.text, img:"assets/omikuji/"+String(r.i+1).padStart(2,"0")+".jpg", color:COLORS[r.c], limited:false };
@@ -342,17 +354,27 @@
     if(hist[tk]) return hist[tk];
     var r={ o:pick(OMIKUJI.length, recent(3,function(x){return x.o;})),
             c:pick(COLORS.length,  recent(3,function(x){return x.c;})),
-            i:pick(IMG_COUNT,      recent(6,function(x){return x.i;})) };
+            i:pickImg() };
     /* 限定: 今月まだ出会っていないものがあれば混ぜる。月末が近づくほど出やすく、最後は必ず出る */
     var now=new Date(), sn=seasonNow(now);
     if(sn){
-      var drawn=seasonDrawn(now), rest=[];
-      sn.data.omikuji.forEach(function(_,k){ if(drawn.indexOf(k)<0) rest.push(k); });
+      var drawn=seasonDrawn(now), rest=[], today=now.getDate();
+      var monthEnd=new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+      sn.data.omikuji.forEach(function(o,k){
+        var dl=o.until||monthEnd;                       /* その限定が出る最後の日 */
+        if(drawn.indexOf(k)<0 && today<=dl) rest.push({k:k, left:dl-today+1});
+      });
       if(rest.length){
-        var daysLeft=new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()-now.getDate()+1;
-        var prob=Math.max(0.3, rest.length/daysLeft);
+        rest.sort(function(a,b){ return a.left-b.left; });   /* 締め切りの近い順 */
+        var prob=0.3, urgent=null;
+        rest.forEach(function(x,idx){
+          var need=(idx+1)/x.left;                     /* この限定までを間に合わせるのに必要な割合 */
+          if(need>prob) prob=need;
+          if(need>=1 && urgent===null) urgent=rest[0]; /* もう後がない → 締め切りの近いものから */
+        });
         if(Math.random()<prob){
-          r.s=sn.key; r.si=rest[Math.floor(Math.random()*rest.length)];
+          var chosen = urgent || (Math.random()<0.5 ? rest[0] : rest[Math.floor(Math.random()*rest.length)]);
+          r.s=sn.key; r.si=chosen.k;
           if(sn.data.colors.length && Math.random()<0.6) r.sc=Math.floor(Math.random()*sn.data.colors.length);
         }
       }
@@ -367,7 +389,7 @@
     img.classList.remove("pop"); void img.offsetWidth; img.classList.add("pop");
     img.src=u.img;
     var tag=document.getElementById("resTag");
-    tag.style.display=u.limited?"inline-block":"none"; tag.textContent=u.limited?("🍂 "+u.label):"";
+    tag.style.display=u.limited?"inline-block":"none"; tag.textContent=u.limited?(u.icon+" "+u.label):"";
     document.getElementById("resName").textContent=o.name;
     document.getElementById("resCmt").textContent=o.text;
     document.getElementById("resColor").textContent=c.name;
@@ -457,7 +479,7 @@
         x.strokeStyle=c.hex; x.lineWidth=4; rrect(x,48,cy,W-96,chh,40); x.stroke();
 
         x.fillStyle="#4a4038"; x.textAlign="center";
-        if(u.limited){ x.fillStyle="#d3762a"; x.font="bold 30px "+FONT; x.fillText("🍂 "+u.label, W/2, cy+58); x.fillStyle="#4a4038"; }
+        if(u.limited){ x.fillStyle="#d3762a"; x.font="bold 30px "+FONT; x.fillText(u.icon+" "+u.label, W/2, cy+58); x.fillStyle="#4a4038"; }
         x.font="bold 86px "+FONT;
         x.fillText(o.name, W/2, cy+122);
 
@@ -497,7 +519,7 @@
 
   function shareText(){
     var r=hist[todayKey()], u=unpack(r), o=u, c=u.color;
-    var NL=String.fromCharCode(10), head=u.limited ? "🍂"+u.label+"！今日のモフみくじは【" : "今日のモフみくじは【";
+    var NL=String.fromCharCode(10), head=u.limited ? u.icon+u.label+"！今日のモフみくじは【" : "今日のモフみくじは【";
     return head+o.name+"】"+NL+o.text+NL+"ラッキーカラーは "+c.name+" 🐶"+NL+"#モフみくじ #もふもふの丘";
   }
   var shareBtn=document.getElementById("share");
@@ -573,7 +595,7 @@
   function openModal(k,rec){
     var u=unpack(rec), o=u, c=u.color, p=k.split("-");
     document.getElementById("mImg").src=u.img;
-    var mt=document.getElementById("mTag"); mt.style.display=u.limited?"inline-block":"none"; mt.textContent=u.limited?("🍂 "+u.label):"";
+    var mt=document.getElementById("mTag"); mt.style.display=u.limited?"inline-block":"none"; mt.textContent=u.limited?(u.icon+" "+u.label):"";
     document.getElementById("mDate").textContent=(+p[1])+"月"+(+p[2])+"日";
     document.getElementById("mName").textContent=o.name;
     document.getElementById("mCmt").textContent=o.text;
@@ -627,6 +649,8 @@
     {g:"ほん",c:"book"},
     {i:"📚",t:"もふもふの丘の住民たち",s:"絵本（Kindle）",u:"https://www.amazon.co.jp/dp/B0H56YQ2W7"},
     {i:"📚",t:"モフモフの丘でまってるよ",s:"絵本（Kindle・紙の本もあり）",u:"https://www.amazon.co.jp/dp/B0FTR248TQ"},
+    {g:"お金のこと",c:"money"},
+    {i:"🦊",t:"お金のクセ診断",s:"10問で、あなたに似ている丘の住民がわかる",u:"https://rincanvas-hash.github.io/okane-kuse/"},
     {g:"丘へ",c:"hill"},
     {i:"🏡",t:"もふもふの丘",s:"丘を歩いて世界をのぞく",u:"https://rincanvas-hash.github.io/mofumofu-hill/"}
   ];
