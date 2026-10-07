@@ -112,6 +112,31 @@
     100%{opacity:1;transform:translateY(-90px) scale(1.15) rotate(0)}
   }
   .again{text-align:center;font-size:13px;color:var(--sub);margin:4px 0 12px}
+  /* お弁当（コンプリート） */
+  .banner.done{background:linear-gradient(180deg,#fff2d6,#ffe3b0);border-color:#e4b060;cursor:pointer}
+  .lidwrap{position:relative}
+  .lid{position:absolute;inset:0;border-radius:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    background:
+      repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 14px,transparent 14px 28px),
+      repeating-linear-gradient(0deg,rgba(255,255,255,.18) 0 14px,transparent 14px 28px),
+      linear-gradient(180deg,#f0c9a2,#dba77c);
+    box-shadow:inset 0 -16px 0 rgba(90,60,30,.12), 0 10px 24px rgba(120,80,40,.25);
+    transition:transform .75s cubic-bezier(.5,0,.3,1), opacity .75s}
+  .lid .e{font-size:70px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.15))}
+  .lid b{font-size:15px;color:#6b4a2b;background:rgba(255,255,255,.75);border-radius:999px;padding:5px 14px}
+  .lid.open{transform:translateY(-125%) rotate(-10deg);opacity:0;pointer-events:none}
+  .btitle{font-size:22px;font-weight:800;margin:12px 0 2px}
+  .bstat{font-size:13px;color:var(--sub);margin:0}
+  .bmofu{display:flex;gap:10px;align-items:flex-start;text-align:left;background:#fffaea;border:1.5px solid var(--gold-soft,#f6e7bd);border-radius:14px;padding:10px 12px;margin-top:12px;font-size:14px}
+  .bmofu img{width:44px !important;height:44px !important;aspect-ratio:1 !important;border-radius:50% !important;flex:0 0 auto}
+  .bgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:6px}
+  .bcard{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:10px;text-align:center;cursor:pointer}
+  .bcard img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;display:block}
+  .bcard .ph{aspect-ratio:3/4;border-radius:12px;background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--sub)}
+  .bcard .ph span{font-size:40px;opacity:.45}
+  .bcard .ph small{font-size:11px;padding:0 8px;line-height:1.4}
+  .bcard b{display:block;font-size:14px;margin-top:8px}
+  .bcard small.s{display:block;font-size:11px;color:var(--sub)}
   /* 月替わりの限定 */
   .banner{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
     background:linear-gradient(180deg,#fff6e3,#ffe9c4);border:1.5px solid #e8c27a;border-radius:14px;
@@ -182,6 +207,7 @@
       <button class="btn sub" data-go="s-cal">📅 きろく</button>
       <button class="btn sub" data-go="s-annai">🏡 丘の案内所</button>
     </div>
+    <button class="btn sub" data-go="s-bento">🍱 モフのお弁当箱</button>
   </section>
 
   <!-- 結果 -->
@@ -221,6 +247,14 @@
     <button class="btn back" data-go="s-title">← もどる</button>
   </section>
 
+  <!-- お弁当箱 -->
+  <section class="screen" id="s-bento">
+    <h2 class="sec">🍱 モフのお弁当箱</h2>
+    <p class="hint" style="margin:-4px 0 10px">その月の限定おみくじを3本そろえると、モフがお弁当を作ってくれます</p>
+    <div class="bgrid" id="bentoGrid"></div>
+    <button class="btn back" data-go="s-title">← もどる</button>
+  </section>
+
   <!-- 案内所 -->
   <section class="screen" id="s-annai">
     <h2 class="sec">🏡 丘の案内所</h2>
@@ -248,6 +282,22 @@
   </div>
 </div>
 
+<div class="modal" id="bentoModal">
+  <div class="box">
+    <span class="ltag" id="bTag"></span>
+    <div class="lidwrap">
+      <img id="bImg" alt="モフのお弁当">
+      <div class="lid" id="bLid"><span class="e">🍱</span><b>タップしてふたを開ける</b></div>
+    </div>
+    <p class="btitle" id="bTitle"></p>
+    <p class="bstat" id="bStat"></p>
+    <div class="bmofu"><img src="assets/title.jpg" alt="モフ"><div id="bMofu"></div></div>
+    <button class="btn back" id="bShare" style="margin-top:14px">お弁当をシェアする</button>
+    <button class="btn sub" id="bBox">お弁当箱を見る</button>
+    <button class="btn sub" id="bClose">とじる</button>
+  </div>
+</div>
+
 <div class="modal" id="shotModal">
   <div class="box">
     <img class="shot" id="shotImg" alt="今日の結果">
@@ -258,7 +308,7 @@
   </div>
 </div>
 
-<script src="assets/data.js?v=4"></script>
+<script src="assets/data.js?v=5"></script>
 <script>
 (function(){
   "use strict";
@@ -301,6 +351,7 @@
     var list=document.querySelectorAll(".screen");
     for(var i=0;i<list.length;i++) list[i].classList.toggle("on", list[i].id===id);
     if(id==="s-cal") drawCal();
+    if(id==="s-bento") renderBentoBox();
     window.scrollTo(0,0);
   }
   var gos=document.querySelectorAll("[data-go]");
@@ -398,11 +449,148 @@
     show("s-result"); chime();
     if(u.limited||o.name==="大吉"||o.name==="モフ吉") confetti(c.hex);
   }
-  /* トップの「◯月限定 登場中」 */
+  /* ===== お弁当（その月の限定3本をそろえたごほうび） ===== */
+  var BKEY="mofumikuji.bento", bento=(function(){ try{ return JSON.parse(localStorage.getItem(BKEY)||"{}"); }catch(e){ return {}; } })();
+  function saveBento(){ try{ localStorage.setItem(BKEY,JSON.stringify(bento)); }catch(e){} }
+  /* 引いた記録を月ごとに見て、3本そろった月をお弁当として記録。新しくそろった月のキー（"2026-11"）を返す */
+  function checkBento(){
+    var byMonth={};
+    Object.keys(hist).sort().forEach(function(k){ var ym=k.slice(0,7); (byMonth[ym]=byMonth[ym]||[]).push(k); });
+    var fresh=[];
+    Object.keys(byMonth).forEach(function(ym){
+      var m=String(+ym.slice(5,7)), sd=SEASON[m];
+      if(!sd || !sd.complete || bento[ym]) return;
+      var seen={}, n=0, got=0;
+      for(var i=0;i<byMonth[ym].length;i++){
+        var r=hist[byMonth[ym][i]]; n++;
+        if(r.s===m && !seen[r.si]){ seen[r.si]=1; got++; }
+        if(got>=sd.omikuji.length){ bento[ym]={n:n, date:byMonth[ym][i]}; fresh.push(ym); break; }
+      }
+    });
+    if(fresh.length) saveBento();
+    return fresh;
+  }
+  var bentoQueue=[], bentoNow=null;
+  function showBento(ym, fresh){
+    var m=String(+ym.slice(5,7)), sd=SEASON[m], c=sd.complete, b=bento[ym]||{};
+    bentoNow=ym;
+    document.getElementById("bTag").textContent=(sd.icon||"🍱")+" "+(+m)+"月コンプリート";
+    document.getElementById("bImg").src="assets/season/"+c.img;
+    document.getElementById("bTitle").textContent=c.title;
+    document.getElementById("bStat").textContent=b.n ? ("限定3本、"+b.n+"回目のおみくじでそろいました") : "";
+    document.getElementById("bMofu").textContent="「"+c.mofu+"」";
+    var lid=document.getElementById("bLid"); lid.className="lid"+(fresh?"":" open");
+    document.getElementById("bentoModal").classList.add("on");
+  }
+  document.getElementById("bLid").onclick=function(){
+    this.className="lid open"; ac(); chime();
+    var m=String(+bentoNow.slice(5,7)), col=(SEASON[m].colors[0]||{}).hex||"#e0a23a";
+    setTimeout(function(){ confetti(col); }, 350);
+  };
+  function closeBento(){
+    document.getElementById("bentoModal").classList.remove("on");
+    if(bentoQueue.length) setTimeout(function(){ showBento(bentoQueue.shift(), true); }, 400);
+  }
+  document.getElementById("bClose").onclick=closeBento;
+  document.getElementById("bBox").onclick=function(){ document.getElementById("bentoModal").classList.remove("on"); bentoQueue=[]; show("s-bento"); };
+  document.getElementById("bentoModal").onclick=function(e){ if(e.target===this) closeBento(); };
+  /* 新しくそろった月があれば、ふた付きで見せる（複数なら順番に） */
+  function announceBento(){
+    var fresh=checkBento(); if(!fresh.length) return;
+    bentoQueue=fresh.slice(1); showBento(fresh[0], true);
+  }
+  /* お弁当箱ページ */
+  function renderBentoBox(){
+    var g=document.getElementById("bentoGrid"); g.innerHTML="";
+    var now=new Date(), ms=Object.keys(SEASON).filter(function(k){ return SEASON[k].complete; }).sort(function(a,b){ return a-b; });
+    ms.forEach(function(m){
+      var sd=SEASON[m], card=document.createElement("div"); card.className="bcard";
+      /* その月のお弁当（いちばん新しい年のもの） */
+      var ym=Object.keys(bento).filter(function(k){ return String(+k.slice(5,7))===m; }).sort().pop();
+      if(ym){
+        var im=document.createElement("img"); im.src="assets/season/"+sd.complete.img; im.alt=sd.complete.title; card.appendChild(im);
+        var b=document.createElement("b"); b.textContent=(sd.icon||"🍱")+" "+(+m)+"月"; card.appendChild(b);
+        var s=document.createElement("small"); s.className="s"; s.textContent=sd.complete.title; card.appendChild(s);
+        card.onclick=function(){ showBento(ym,false); };
+      }else{
+        var ph=document.createElement("div"); ph.className="ph";
+        var e=document.createElement("span"); e.textContent="🍱"; ph.appendChild(e);
+        var t=document.createElement("small");
+        var cur=(now.getMonth()+1)===+m;
+        t.textContent= cur ? "限定3本をそろえると、もらえます" : ((+m)+"月に限定3本をそろえると、もらえます");
+        ph.appendChild(t); card.appendChild(ph);
+        var b2=document.createElement("b"); b2.textContent=(sd.icon||"🍱")+" "+(+m)+"月"; card.appendChild(b2);
+        var s2=document.createElement("small"); s2.className="s"; s2.textContent=sd.omikuji.map(function(o){ return o.name; }).join("・"); card.appendChild(s2);
+        card.style.cursor="default";
+      }
+      g.appendChild(card);
+    });
+  }
+  /* お弁当のシェア画像 */
+  function buildBentoCard(ym){
+    return new Promise(function(resolve){
+      var m=String(+ym.slice(5,7)), sd=SEASON[m], c=sd.complete, b=bento[ym]||{};
+      var W=1080, H=1350, cv=document.createElement("canvas"); cv.width=W; cv.height=H; var x=cv.getContext("2d"), done=false;
+      function out(v){ if(!done){ done=true; resolve(v); } }
+      setTimeout(function(){ out(null); }, 5000);
+      var bg=x.createLinearGradient(0,0,0,H); bg.addColorStop(0,"#fdf8ef"); bg.addColorStop(1,"#f3ead9"); x.fillStyle=bg; x.fillRect(0,0,W,H);
+      var im=new Image();
+      im.onload=function(){
+        try{
+          var pw=W-96, ph=760, px=48, py=48;
+          x.save(); rrect(x,px,py,pw,ph,44); x.clip();
+          var sc=Math.max(pw/im.width, ph/im.height), dw=im.width*sc, dh=im.height*sc;
+          x.drawImage(im, px+(pw-dw)/2, py+(ph-dh)/2, dw, dh); x.restore();
+          var cy=py+ph-60, chh=H-cy-112;
+          x.save(); x.shadowColor="rgba(120,100,70,.18)"; x.shadowBlur=26; x.shadowOffsetY=8; x.fillStyle="#fffdf8"; rrect(x,48,cy,W-96,chh,40); x.fill(); x.restore();
+          x.strokeStyle="#e0a23a"; x.lineWidth=4; rrect(x,48,cy,W-96,chh,40); x.stroke();
+          x.textAlign="center"; x.fillStyle="#d3762a"; x.font="bold 34px "+FONT; x.fillText((sd.icon||"🍱")+" "+(+m)+"月コンプリート", W/2, cy+70);
+          x.fillStyle="#4a4038"; x.font="bold 64px "+FONT; x.fillText(c.title, W/2, cy+150);
+          x.fillStyle="#8a7b6c"; x.font="30px "+FONT;
+          x.fillText(sd.omikuji.map(function(o){ return o.name; }).join("・")+" の3本をそろえました", W/2, cy+215);
+          if(b.n){ x.fillText(b.n+"回目のおみくじで、そろいました", W/2, cy+265); }
+          x.fillStyle="#6b4a2b"; x.font="bold 32px "+FONT; x.fillText("「"+c.mofu+"」", W/2, cy+chh-50);
+          x.fillStyle="#8a7b6c"; x.font="26px "+FONT; x.fillText("モフみくじ ｜ もふもふの丘", W/2, H-42);
+          var durl=cv.toDataURL("image/png"); cv.toBlob(function(bl){ out({blob:bl,url:durl}); },"image/png");
+        }catch(e){ out(null); }
+      };
+      im.onerror=function(){ out(null); };
+      im.src="assets/season/"+c.img;
+    });
+  }
+  document.getElementById("bShare").onclick=function(){
+    var ym=bentoNow; if(!ym) return;
+    var m=String(+ym.slice(5,7)), sd=SEASON[m], c=sd.complete, btn=this, NL=String.fromCharCode(10);
+    var text=(sd.icon||"🍱")+(+m)+"月のモフみくじ、限定3本コンプリート！"+NL+"モフが「"+c.title+"」を作ってくれました🍱"+NL+"#モフみくじ #もふもふの丘";
+    var url=location.href.split("#")[0].split("?")[0];
+    btn.disabled=true; btn.textContent="画像をつくっています…";
+    buildBentoCard(ym).catch(function(){ return null; }).then(function(card){
+      btn.disabled=false; btn.textContent="お弁当をシェアする";
+      if(!card){ if(navigator.share) navigator.share({text:text,url:url}).catch(function(){}); else window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(text)+"&url="+encodeURIComponent(url),"_blank"); return; }
+      var file=null; try{ file=new File([card.blob],"mofu-bento.png",{type:"image/png"}); }catch(e){}
+      if(file && navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file], text:text+NL+url}).catch(function(){}); }
+      else{
+        document.getElementById("bentoModal").classList.remove("on");
+        document.getElementById("shotImg").src=card.url; document.getElementById("shotSave").href=card.url;
+        document.getElementById("shotX").onclick=function(){ window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(text)+"&url="+encodeURIComponent(url),"_blank"); };
+        shotModal.classList.add("on");
+      }
+    });
+  };
+
+  /* トップの「◯月限定 登場中」／そろったら「コンプリート！」 */
   function renderBanner(){
     var b=document.getElementById("seasonBanner"), sn=seasonNow();
     if(!sn){ b.style.display="none"; return; }
-    b.textContent=""; b.style.display="flex";
+    b.textContent=""; b.style.display="flex"; b.className="banner"; b.onclick=null;
+    var now=new Date(), ym=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+    if(bento[ym] && sn.data.complete){
+      b.className="banner done";
+      b.appendChild(document.createTextNode((sn.data.icon||"🍱")+" "+(now.getMonth()+1)+"月コンプリート！ モフからお弁当をもらいました"));
+      var sm0=document.createElement("small"); sm0.textContent="🍱 見る"; b.appendChild(sm0);
+      b.onclick=function(){ showBento(ym,false); };
+      return;
+    }
     b.appendChild(document.createTextNode(sn.data.banner));
     var got=seasonDrawn().length, sm=document.createElement("small");
     sm.textContent="みつけた "+got+" / "+sn.data.omikuji.length; b.appendChild(sm);
@@ -433,6 +621,7 @@
     setTimeout(function(){
       img.classList.remove("shake"); stick.classList.remove("go");
       drawing=false; render(drawToday());
+      setTimeout(announceBento, 1200);
     }, 1680);
   };
 
@@ -671,7 +860,7 @@
 
   /* ---- 起動時 ---- */
   if(hist[todayKey()]) document.getElementById("draw").textContent="今日の結果をもう一度見る";
-  renderBanner();
+  announceBento(); renderBanner();
 
   /* ホーム画面に追加できるようにする（対応ブラウザのみ） */
   if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
@@ -686,7 +875,9 @@
     force:function(o,c,i){ hist[todayKey()]={o:o,c:c,i:i}; save(); render(hist[todayKey()]); },
     reset:function(){ hist={}; save(); location.reload(); },
     show:show, OMIKUJI:OMIKUJI, COLORS:COLORS, SEASON:SEASON, unpack:unpack, banner:renderBanner,
-    forceSeason:function(key,si,sc){ hist[todayKey()]={o:0,c:0,i:0,s:key,si:si,sc:sc}; save(); render(hist[todayKey()]); renderBanner(); }
+    forceSeason:function(key,si,sc){ hist[todayKey()]={o:0,c:0,i:0,s:key,si:si,sc:sc}; save(); render(hist[todayKey()]); renderBanner(); },
+    bento:bento, checkBento:checkBento, showBento:showBento, announceBento:announceBento,
+    resetBento:function(){ bento={}; saveBento(); }
   };
 })();
 </script>
