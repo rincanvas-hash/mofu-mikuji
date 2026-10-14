@@ -39,7 +39,7 @@
   .screen.on{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
-  .photo{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:22px;
+  .photo{width:100%;aspect-ratio:3/4;max-height:54vh;object-fit:cover;object-position:50% 30%;border-radius:22px;
     box-shadow:var(--shadow);background:#eee8dc;display:block}
   .photo.pop{animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
   @keyframes pop{from{opacity:0;transform:scale(.9) rotate(-2deg)}to{opacity:1;transform:none}}
@@ -197,12 +197,12 @@
 
   <!-- タイトル -->
   <section class="screen on" id="s-title">
+    <button class="btn" id="draw" style="margin-top:4px">おみくじを引く</button>
     <div class="stage">
       <img class="photo" id="titleImg" src="assets/title.jpg" alt="おみくじを持ったモフ">
       <div class="stick" id="stick">🐾</div>
     </div>
     <div class="banner" id="seasonBanner" style="display:none"></div>
-    <button class="btn" id="draw">おみくじを引く</button>
     <div class="row">
       <button class="btn sub" data-go="s-cal">📅 きろく</button>
       <button class="btn sub" data-go="s-annai">🏡 丘の案内所</button>
@@ -308,7 +308,7 @@
   </div>
 </div>
 
-<script src="assets/data.js?v=5"></script>
+<script src="assets/data.js?v=6"></script>
 <script>
 (function(){
   "use strict";
